@@ -1,0 +1,1 @@
+const r=await fetch('/api/reports');const j=await r.json();document.querySelector('#reports').innerHTML=(j.reports||[]).map(x=>`<article><h2>${x.title}</h2><p>${x.category} · severity ${x.severity} · ${x.status}</p></article>`).join('')||'<p>No reports yet.</p>';
