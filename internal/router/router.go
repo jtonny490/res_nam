@@ -6,6 +6,7 @@ import (
 	"res_nam/internal/config"
 	"res_nam/internal/handlers"
 	"res_nam/internal/middleware"
+	"res_nam/internal/repositories"
 	"res_nam/internal/services"
 )
 
@@ -17,7 +18,7 @@ func New(c config.Config, db *gorm.DB, auth handlers.AuthHandler) *gin.Engine {
 	r.GET("/health", func(x *gin.Context) { x.JSON(200, gin.H{"status": "ok"}) })
 	r.POST("/api/auth/register", auth.Register)
 	r.POST("/api/auth/login", auth.Login)
-	rr := handlers.ReportHandler{DB: db}
+	rr := handlers.ReportHandler{S: services.ReportService{Reports: repositories.ReportRepository{DB: db}}}
 	kp := handlers.KijaniHandler{DB: db, Provider: services.MockKijaniProvider{}}
 	r.GET("/api/reports", rr.List)
 	r.GET("/api/reports/:id", rr.Get)
