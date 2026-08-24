@@ -19,6 +19,7 @@ func New(c config.Config, db *gorm.DB, auth handlers.AuthHandler) *gin.Engine {
 	r.POST("/api/auth/register", auth.Register)
 	r.POST("/api/auth/login", auth.Login)
 	rr := handlers.ReportHandler{S: services.ReportService{Reports: repositories.ReportRepository{DB: db}}}
+	ah := handlers.AuthorityHandler{S: services.AuthorityService{Requests: repositories.AuthorityRepository{DB: db}}}
 	kp := handlers.KijaniHandler{DB: db, Provider: services.MockKijaniProvider{}}
 	r.GET("/api/reports", rr.List)
 	r.GET("/api/reports/:id", rr.Get)
@@ -28,5 +29,8 @@ func New(c config.Config, db *gorm.DB, auth handlers.AuthHandler) *gin.Engine {
 	p.POST("/reports/:id/like", rr.Like)
 	p.PATCH("/reports/:id/status", middleware.RequireRole("authority", "admin"), rr.Status)
 	p.GET("/reports/:id/assessment", kp.Assess)
+	p.POST("/authority-requests", ah.Apply)
+	p.GET("/authority-requests", middleware.RequireRole("admin"), ah.Pending)
+	p.PATCH("/authority-requests/:id", middleware.RequireRole("admin"), ah.Review)
 	return r
 }
