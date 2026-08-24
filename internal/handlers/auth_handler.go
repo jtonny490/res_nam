@@ -11,7 +11,7 @@ type AuthHandler struct{ S *services.AuthService }
 func (h AuthHandler) Register(c *gin.Context) {
 	var x struct{ Name, Email, Password string }
 	if c.BindJSON(&x) != nil {
-		errJSON(c, 400, gin.Error{Err: gin.ErrorTypeBind})
+		c.JSON(400, gin.H{"error": "invalid request"})
 		return
 	}
 	u, t, e := h.S.Register(x.Name, x.Email, x.Password)

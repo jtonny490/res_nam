@@ -2,10 +2,15 @@ package config
 
 import "os"
 
-type Config struct{ DBHost, DBPort, DBUser, DBPassword, DBName, JWTSecret, KijaniAPIKey, Port string }
+type Config struct {
+	DBHost, DBPort, DBUser, DBPassword, DBName, JWTSecret, KijaniAPIKey, KijaniBaseURL, KijaniMode, Port string
+	Seed                                                                                                 bool
+}
 
 func Load() Config {
-	c := Config{DBHost: "db", DBPort: "5432", DBUser: "postgres", DBName: "res_nam", Port: "8080"}
+	// Use localhost for direct local runs; Docker Compose overrides this with its
+	// internal service name (DB_HOST=db).
+	c := Config{DBHost: "localhost", DBPort: "5432", DBUser: "postgres", DBName: "res_nam", Port: "8080", KijaniMode: "mock"}
 	if v := os.Getenv("DB_HOST"); v != "" {
 		c.DBHost = v
 	}
@@ -21,6 +26,11 @@ func Load() Config {
 	}
 	c.JWTSecret = os.Getenv("JWT_SECRET")
 	c.KijaniAPIKey = os.Getenv("KIJANI_API_KEY")
+	c.KijaniBaseURL = os.Getenv("KIJANI_BASE_URL")
+	if v := os.Getenv("KIJANI_MODE"); v != "" {
+		c.KijaniMode = v
+	}
+	c.Seed = os.Getenv("SEED_DATA") == "true"
 	if v := os.Getenv("PORT"); v != "" {
 		c.Port = v
 	}

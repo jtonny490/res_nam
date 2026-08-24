@@ -19,7 +19,7 @@ type AuthService struct {
 }
 
 func (s *AuthService) Register(n, e, p string) (*models.User, string, error) {
-	if !regexp.MustCompile(`^[^@]+@[^@]+\.[^@]+$`).MatchString(e) || len(p) < 8 {
+	if len(n) < 2 || !regexp.MustCompile(`^[^@]+@[^@]+\.[^@]+$`).MatchString(e) || len(p) < 8 {
 		return nil, "", errors.New("valid email and password of at least 8 characters required")
 	}
 	if _, err := s.Users.FindByEmail(e); err == nil {
@@ -33,12 +33,16 @@ func (s *AuthService) Register(n, e, p string) (*models.User, string, error) {
 	if err = s.Users.Create(u); err != nil {
 		return nil, "", err
 	}
-	return u, s.token(u)
+	t, err := s.token(u)
+	return u, t, err
 }
 func (s *AuthService) Login(e, p string) (*models.User, string, error) {
 	u, err := s.Users.FindByEmail(e)
 	if err != nil || bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(p)) != nil {
 		return nil, "", errors.New("invalid credentials")
+	}
+	if u.Status != "active" {
+		return nil, "", errors.New("account is not active")
 	}
 	t, err := s.token(u)
 	return u, t, err

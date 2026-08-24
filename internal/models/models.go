@@ -26,6 +26,9 @@ type Report struct {
 	LastActivityAt time.Time `gorm:"not null"`
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
+	User           User      `json:"user,omitempty" gorm:"foreignKey:UserID"`
+	Comments       []Comment `json:"comments,omitempty"`
+	Likes          []Like    `json:"likes,omitempty"`
 }
 type Comment struct {
 	ID                 uint   `gorm:"primaryKey"`
@@ -34,6 +37,7 @@ type Comment struct {
 	Body               string `gorm:"type:text;not null"`
 	IsAuthorityComment bool   `gorm:"not null;default:false"`
 	CreatedAt          time.Time
+	User               User `json:"user,omitempty" gorm:"foreignKey:UserID"`
 }
 type Like struct {
 	ID        uint `gorm:"primaryKey"`
