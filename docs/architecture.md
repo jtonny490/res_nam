@@ -142,13 +142,13 @@ The script describes the following milestones:
 | Comments | Partial | Create, authority flagging, activity updates, and the open-to-investigating transition exist; no separate GET endpoint. |
 | Likes | Partial | Toggle endpoint exists; explicit unlike contract and robust DB error handling are absent. |
 | Authority workflow | Backend implemented | Apply, pending-list, and admin review routes exist; frontend screens are absent. |
-| Status automation | Partial | Authority comments transition open reports to investigating; no scheduler/job or admin resolution endpoint. |
+| Status automation | Partial | Authority comments transition open reports to investigating, and an hourly job marks reports stale after seven inactive days; no admin resolution endpoint. |
 | Kijani | Mock only | Assessment interface and mock exist; live contract/client and satellite/map endpoints do not. |
 | Admin | Not implemented | No admin handlers, analytics, moderation, or frontend. |
 | Frontend | Early functional prototype | Auth, feed, detail, comment, and report form pages exist; no shared modules, filters UI, map, admin, or authority application. |
 | Tests/CI | Partial | Backend service tests exist; handler, repository, frontend, and CI coverage are absent. |
 
-Overall, the repository is a runnable proof-of-concept for authentication, reports, and authority approval, not yet the complete environmental reporting platform described by the backlog. The next major backend gaps are the stale-report job and admin resolution flow, followed by broader test coverage and map/admin features.
+Overall, the repository is a runnable proof-of-concept for authentication, reports, and authority approval, not yet the complete environmental reporting platform described by the backlog. The next major backend gap is the admin resolution flow, followed by broader test coverage and map/admin features.
 
 ## 10. Recommended Workflow Order
 
