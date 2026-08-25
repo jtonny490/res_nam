@@ -8,19 +8,24 @@ import (
 )
 
 type fakeReports struct {
-	created *models.Report
-	comment *models.Comment
-	like    *models.Like
-	deleted bool
-	status  string
+	created   *models.Report
+	comment   *models.Comment
+	commentAt time.Time
+	like      *models.Like
+	deleted   bool
+	status    string
 }
 
 func (f *fakeReports) List(string, string, int, int) ([]models.Report, int64, error) {
 	return nil, 0, nil
 }
-func (f *fakeReports) Get(uint) (*models.Report, error)   { return &models.Report{}, nil }
-func (f *fakeReports) Create(x *models.Report) error      { f.created = x; return nil }
-func (f *fakeReports) AddComment(x *models.Comment) error { f.comment = x; return nil }
+func (f *fakeReports) Get(uint) (*models.Report, error) { return &models.Report{}, nil }
+func (f *fakeReports) Create(x *models.Report) error    { f.created = x; return nil }
+func (f *fakeReports) AddComment(x *models.Comment, at time.Time) error {
+	f.comment = x
+	f.commentAt = at
+	return nil
+}
 func (f *fakeReports) FindLike(uint, uint) (*models.Like, error) {
 	if f.like != nil {
 		return f.like, nil
@@ -55,5 +60,36 @@ func TestReportServiceLikeToggles(t *testing.T) {
 	liked, e = s.ToggleLike(2, 3)
 	if e != nil || liked || !f.deleted {
 		t.Fatal("expected unlike")
+	}
+}
+
+func TestReportServiceCommentSetsAuthorityFlagAndActivityTime(t *testing.T) {
+	f := &fakeReports{}
+	now := time.Date(2026, 8, 25, 10, 0, 0, 0, time.UTC)
+	s := ReportService{Reports: f, Now: func() time.Time { return now }}
+
+	comment, err := s.Comment(2, 3, "authority", "  Testing the water  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !comment.IsAuthorityComment || comment.Body != "Testing the water" {
+		t.Fatalf("unexpected comment: %#v", comment)
+	}
+	if !f.commentAt.Equal(now) {
+		t.Fatalf("activity time = %v, want %v", f.commentAt, now)
+	}
+}
+
+func TestReportServiceCommentDoesNotFlagOtherRoles(t *testing.T) {
+	for _, role := range []string{"public", "admin", ""} {
+		t.Run(role, func(t *testing.T) {
+			comment, err := (ReportService{Reports: &fakeReports{}}).Comment(2, 3, role, "Observation")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if comment.IsAuthorityComment {
+				t.Fatalf("role %q was marked as an authority comment", role)
+			}
+		})
 	}
 }

@@ -11,7 +11,7 @@ type ReportStore interface {
 	List(string, string, int, int) ([]models.Report, int64, error)
 	Get(uint) (*models.Report, error)
 	Create(*models.Report) error
-	AddComment(*models.Comment) error
+	AddComment(*models.Comment, time.Time) error
 	FindLike(uint, uint) (*models.Like, error)
 	CreateLike(*models.Like) error
 	DeleteLike(*models.Like) error
@@ -60,7 +60,7 @@ func (s ReportService) Create(uid uint, in CreateReportInput) (*models.Report, e
 	r := &models.Report{UserID: uid, Title: in.Title, Description: in.Description, PhotoURL: in.PhotoURL, Category: in.Category, Severity: in.Severity, Latitude: in.Latitude, Longitude: in.Longitude, Status: "open", LastActivityAt: s.now()}
 	return r, s.Reports.Create(r)
 }
-func (s ReportService) Comment(rid, uid uint, body string) (*models.Comment, error) {
+func (s ReportService) Comment(rid, uid uint, role, body string) (*models.Comment, error) {
 	body = strings.TrimSpace(body)
 	if rid == 0 || uid == 0 {
 		return nil, errors.New("invalid report or user")
@@ -68,8 +68,13 @@ func (s ReportService) Comment(rid, uid uint, body string) (*models.Comment, err
 	if body == "" {
 		return nil, errors.New("body is required")
 	}
-	x := &models.Comment{ReportID: rid, UserID: uid, Body: body}
-	return x, s.Reports.AddComment(x)
+	x := &models.Comment{
+		ReportID:           rid,
+		UserID:             uid,
+		Body:               body,
+		IsAuthorityComment: role == "authority",
+	}
+	return x, s.Reports.AddComment(x, s.now())
 }
 func (s ReportService) ToggleLike(rid, uid uint) (bool, error) {
 	if rid == 0 || uid == 0 {

@@ -28,7 +28,18 @@ func (r ReportRepository) Get(id uint) (*models.Report, error) {
 	e := r.DB.Preload("User").Preload("Comments.User").Preload("Likes").First(&x, id).Error
 	return &x, e
 }
-func (r ReportRepository) AddComment(x *models.Comment) error { return r.DB.Create(x).Error }
+func (r ReportRepository) AddComment(x *models.Comment, at time.Time) error {
+	return r.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(x).Error; err != nil {
+			return err
+		}
+		updates := map[string]interface{}{"last_activity_at": at}
+		if x.IsAuthorityComment {
+			updates["status"] = gorm.Expr("CASE WHEN status = ? THEN ? ELSE status END", "open", "investigating")
+		}
+		return tx.Model(&models.Report{}).Where("id = ?", x.ReportID).Updates(updates).Error
+	})
+}
 func (r ReportRepository) FindLike(reportID, userID uint) (*models.Like, error) {
 	var x models.Like
 	err := r.DB.Where("report_id = ? AND user_id = ?", reportID, userID).First(&x).Error
