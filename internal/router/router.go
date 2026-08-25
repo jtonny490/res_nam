@@ -28,6 +28,7 @@ func New(c config.Config, db *gorm.DB, auth handlers.AuthHandler) *gin.Engine {
 	p.POST("/reports/:id/comments", rr.Comment)
 	p.POST("/reports/:id/like", rr.Like)
 	p.PATCH("/reports/:id/status", middleware.RequireRole("authority", "admin"), rr.Status)
+	p.PATCH("/reports/:id/resolve", middleware.RequireRole("admin"), rr.Resolve)
 	p.GET("/reports/:id/assessment", kp.Assess)
 	p.POST("/authority-requests", ah.Apply)
 	p.GET("/authority-requests", middleware.RequireRole("admin"), ah.Pending)

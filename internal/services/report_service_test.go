@@ -93,3 +93,22 @@ func TestReportServiceCommentDoesNotFlagOtherRoles(t *testing.T) {
 		})
 	}
 }
+
+func TestReportServiceResolve(t *testing.T) {
+	f := &fakeReports{}
+	now := time.Date(2026, 8, 25, 10, 0, 0, 0, time.UTC)
+	s := ReportService{Reports: f, Now: func() time.Time { return now }}
+
+	if err := s.Resolve(9); err != nil {
+		t.Fatal(err)
+	}
+	if f.status != "resolved" {
+		t.Fatalf("status = %q, want resolved", f.status)
+	}
+}
+
+func TestReportServiceResolveRejectsInvalidID(t *testing.T) {
+	if err := (ReportService{Reports: &fakeReports{}}).Resolve(0); err == nil {
+		t.Fatal("expected invalid report id error")
+	}
+}

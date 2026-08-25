@@ -85,3 +85,12 @@ func (h ReportHandler) Status(c *gin.Context) {
 	}
 	c.JSON(200, gin.H{"status": x.Status})
 }
+
+func (h ReportHandler) Resolve(c *gin.Context) {
+	id, _ := strconv.ParseUint(c.Param("id"), 10, 64)
+	if e := h.S.Resolve(uint(id)); e != nil {
+		errJSON(c, 400, e)
+		return
+	}
+	c.JSON(200, gin.H{"status": "resolved"})
+}

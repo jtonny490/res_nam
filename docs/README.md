@@ -16,5 +16,6 @@ Open `http://localhost:8080`. Create an account, submit a report using coordinat
 - `GET /api/reports`, `GET /api/reports/:id`
 - Authenticated: `POST /api/reports`, comments, likes, and `GET /api/reports/:id/assessment`
 - Authority/admin: `PATCH /api/reports/:id/status`
+- Admin: `PATCH /api/reports/:id/resolve`
 
 Set `KIJANI_MODE=live`, `KIJANI_BASE_URL`, and `KIJANI_API_KEY` only after KijaniSpace provides the endpoint contract. The live provider deliberately returns a clear configuration error until that contract is implemented.
