@@ -50,3 +50,9 @@ func (r ReportRepository) DeleteLike(x *models.Like) error { return r.DB.Delete(
 func (r ReportRepository) UpdateStatus(id uint, status string, at time.Time) error {
 	return r.DB.Model(&models.Report{}).Where("id = ?", id).Updates(map[string]interface{}{"status": status, "last_activity_at": at}).Error
 }
+func (r ReportRepository) MarkStaleBefore(cutoff time.Time) (int64, error) {
+	result := r.DB.Model(&models.Report{}).
+		Where("last_activity_at < ? AND status NOT IN ?", cutoff, []string{"stale", "resolved"}).
+		Update("status", "stale")
+	return result.RowsAffected, result.Error
+}
