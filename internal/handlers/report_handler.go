@@ -9,7 +9,8 @@ import (
 
 type ReportHandler struct{ S services.ReportService }
 
-func uid(c *gin.Context) uint { v, _ := c.Get("user_id"); id, _ := v.(uint); return id }
+func uid(c *gin.Context) uint    { v, _ := c.Get("user_id"); id, _ := v.(uint); return id }
+func role(c *gin.Context) string { v, _ := c.Get("role"); role, _ := v.(string); return role }
 func (h ReportHandler) List(c *gin.Context) {
 	p, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	if p < 1 {
@@ -55,7 +56,7 @@ func (h ReportHandler) Comment(c *gin.Context) {
 		return
 	}
 	id, _ := strconv.ParseUint(c.Param("id"), 10, 64)
-	co, e := h.S.Comment(uint(id), uid(c), x.Body)
+	co, e := h.S.Comment(uint(id), uid(c), role(c), x.Body)
 	if e != nil {
 		errJSON(c, 400, e)
 		return

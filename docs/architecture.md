@@ -23,7 +23,7 @@ Browser
        -> GORM / repositories
        -> PostgreSQL
        -> services (authentication and Kijani assessment)
-  -> static files under `frontend/`
+  -> built React assets under `frontend/dist/`
 ```
 
 The server serves both API routes and frontend assets. Docker Compose is the intended local deployment: one `app` container and one PostgreSQL 16 container.
@@ -33,15 +33,15 @@ The server serves both API routes and frontend assets. Docker Compose is the int
 - `cmd/server/main.go`: application composition, database connection/retry, migrations, route registration, static file serving, HTTP startup.
 - `internal/config`: environment-based configuration.
 - `internal/models`: GORM entities and relationships.
-- `internal/repositories`: database access abstractions; currently used by authentication and partly independent of report handlers.
-- `internal/services`: authentication rules and Kijani provider abstraction/mock implementation.
+- `internal/repositories`: database access abstractions for users, reports, and authority requests.
+- `internal/services`: authentication, report, authority-request, and Kijani provider logic.
 - `internal/handlers`: Gin request handlers for auth, reports, comments, likes, status, and assessment.
 - `internal/middleware`: CORS, JWT authentication, and role authorization.
-- `frontend`: plain HTML/CSS/JavaScript pages using browser `fetch` calls.
+- `frontend`: React/Vite application with a centralized API module.
 - `docs/spec.md`: product context and Lake Victoria scope.
 - `setup-github-issues.sh`: planned milestones, labels, and issue backlog.
 - `Dockerfile`, `docker-compose.yml`: container build and local orchestration.
-- `migrations/`: currently empty; schema creation is performed with GORM `AutoMigrate`.
+- `migrations/`: versioned initial up/down SQL migrations.
 
 ## 4. Layering and Conventions
 
@@ -51,7 +51,7 @@ The intended dependency direction is:
 handlers -> services -> repositories -> models/database
 ```
 
-Current code only partially follows this rule. Authentication uses `AuthService` and `UserRepository`; report handlers access `*gorm.DB` directly, so report business logic and persistence are coupled to HTTP handlers. New work should preserve the direction above and move report operations behind services/repositories before adding substantial features.
+Authentication, reports, and authority requests follow this rule. The Kijani assessment handler still accesses GORM directly to load its report before invoking the provider.
 
 Handlers should validate transport input, call a service, and translate domain errors into HTTP responses. Services should own business rules and transaction boundaries. Repositories should own query construction. Models should describe persistence and JSON relationships, not request-specific behavior.
 
@@ -73,7 +73,7 @@ Creation enforces severity `1..5` and the Lake Victoria pilot bounds. Status def
 
 ### Comment
 
-`report_id`, `user_id`, `body`, `is_authority_comment`, and timestamps. The flag is present in the schema but is not currently populated from the commenter role, and comment creation does not update report activity or status.
+`report_id`, `user_id`, `body`, `is_authority_comment`, and timestamps. The flag is populated from the commenter role. Comment creation updates report activity, and the first authority comment transitions an open report to investigating.
 
 ### Like
 
@@ -81,7 +81,7 @@ Creation enforces severity `1..5` and the Lake Victoria pilot bounds. Status def
 
 ### AuthorityRequest
 
-`user_id`, organization name, justification, status, reviewer, and timestamps. The model exists, but no request/review handlers or routes are implemented.
+`user_id`, organization name, justification, status, reviewer, and timestamps. Public users can apply, and administrators can list and approve or reject pending requests. Approval changes the applicant's role to authority.
 
 ## 6. Implemented API Surface
 
@@ -99,12 +99,15 @@ Creation enforces severity `1..5` and the Lake Victoria pilot bounds. Status def
 - `POST /api/reports/:id/comments`
 - `POST /api/reports/:id/like` (toggle behavior)
 - `GET /api/reports/:id/assessment`
+- `POST /api/authority-requests`
 
 ### Authority/admin restricted
 
 - `PATCH /api/reports/:id/status`
+- `GET /api/authority-requests`
+- `PATCH /api/authority-requests/:id`
 
-The frontend currently consumes auth, report list/detail, report creation, and comment operations. It stores the JWT/session in `localStorage` and makes raw `fetch` calls per page; centralized `api.js` and `state.js` do not exist yet.
+The frontend currently consumes auth, report list/detail, report creation, comment, and like operations. It stores the JWT/session in `localStorage` and centralizes requests in `frontend/src/api.js`; shared state and reusable component layers do not exist yet.
 
 ## 7. Authentication and Authorization Flow
 
@@ -131,21 +134,21 @@ The script describes the following milestones:
 
 | Area | State | Assessment |
 |---|---|---|
-| Go scaffold and dependency setup | Partial | Builds and starts composition, but no router package or Makefile. |
+| Go scaffold and dependency setup | Partial | Builds and has a router package, but no Makefile. |
 | Docker/Compose | Partial | Files exist and Compose config parses; runtime requires Docker daemon and image availability. |
-| Database schema | Partial | GORM `AutoMigrate` works; versioned up/down migrations are absent. |
+| Database schema | Partial | GORM `AutoMigrate` works and an initial up/down migration exists; migration execution is not integrated. |
 | Auth/register/login/JWT | Implemented baseline | Core path exists; lacks comprehensive tests and production secret handling. |
-| Reports | Partial | List/detail/create exist; no photo multipart handling, edit/delete, category validation, or service layer. |
-| Comments | Partial | Create exists; GET, authority flagging, activity updates, and status transition are absent. |
+| Reports | Partial | List/detail/create and a service layer exist; no photo multipart handling, edit/delete, or category validation. |
+| Comments | Partial | Create, authority flagging, activity updates, and the open-to-investigating transition exist; no separate GET endpoint. |
 | Likes | Partial | Toggle endpoint exists; explicit unlike contract and robust DB error handling are absent. |
-| Authority workflow | Not implemented | Model only. |
-| Status automation | Not implemented | No scheduler/job or resolution endpoint. |
+| Authority workflow | Backend implemented | Apply, pending-list, and admin review routes exist; frontend screens are absent. |
+| Status automation | Partial | Authority comments transition open reports to investigating; no scheduler/job or admin resolution endpoint. |
 | Kijani | Mock only | Assessment interface and mock exist; live contract/client and satellite/map endpoints do not. |
 | Admin | Not implemented | No admin handlers, analytics, moderation, or frontend. |
 | Frontend | Early functional prototype | Auth, feed, detail, comment, and report form pages exist; no shared modules, filters UI, map, admin, or authority application. |
-| Tests/CI | Not implemented | `go test ./...` compiles but reports no tests. |
+| Tests/CI | Partial | Backend service tests exist; handler, repository, frontend, and CI coverage are absent. |
 
-Overall, the repository is a runnable proof-of-concept for authentication and basic report browsing/submission, not yet the complete environmental reporting platform described by the backlog. The most important architectural gap is the direct GORM access in report handlers, followed by missing migrations, tests, and role workflows.
+Overall, the repository is a runnable proof-of-concept for authentication, reports, and authority approval, not yet the complete environmental reporting platform described by the backlog. The next major backend gaps are the stale-report job and admin resolution flow, followed by broader test coverage and map/admin features.
 
 ## 10. Recommended Workflow Order
 
@@ -167,4 +170,3 @@ Before expanding features, establish a reliable baseline:
 - CORS currently allows every origin.
 - There are no automated tests, CI workflow, observability, rate limiting, or documented backup strategy.
 - The issue setup script is a planning tool; creating its GitHub issues does not indicate that the corresponding code exists.
-
