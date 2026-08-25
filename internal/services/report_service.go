@@ -95,3 +95,10 @@ func (s ReportService) UpdateStatus(id uint, status string) error {
 	}
 	return s.Reports.UpdateStatus(id, status, s.now())
 }
+
+func (s ReportService) Resolve(id uint) error {
+	if id == 0 {
+		return errors.New("invalid report id")
+	}
+	return s.Reports.UpdateStatus(id, "resolved", s.now())
+}
