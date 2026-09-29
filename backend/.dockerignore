@@ -1,0 +1,7 @@
+.git
+.gitignore
+*.log
+bin/
+server
+uploads/*
+!uploads/.gitkeep

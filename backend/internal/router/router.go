@@ -14,8 +14,6 @@ func New(c config.Config, db *gorm.DB, auth handlers.AuthHandler) *gin.Engine {
 	r := gin.Default()
 	r.Use(middleware.CORS(c.CORSOrigin))
 	r.Static("/uploads", "uploads")
-	r.Static("/assets", "frontend/assets")
-	r.StaticFile("/", "frontend/index.html")
 	r.GET("/health", func(x *gin.Context) { x.JSON(200, gin.H{"status": "ok"}) })
 	r.POST("/api/auth/register", auth.Register)
 	r.POST("/api/auth/login", auth.Login)

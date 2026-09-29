@@ -14,27 +14,39 @@ services:
       - pgdata:/var/lib/postgresql/data
     restart: unless-stopped
 
-  app:
-    build: .
+  backend:
+    build:
+      context: ./backend
+      network: host
     depends_on:
       db:
         condition: service_healthy
-    ports:
-      - "${PORT:-8080}:8080"
     environment:
+      DATABASE_URL: ${DATABASE_URL:-}
       DB_HOST: db
       DB_PORT: "5432"
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DB_NAME: ${DB_NAME:-res_nam}
+      DB_SSLMODE: ${DB_SSLMODE:-disable}
       JWT_SECRET: ${JWT_SECRET:-change-me}
       CORS_ORIGIN: ${CORS_ORIGIN:-*}
       KIJANI_MODE: ${KIJANI_MODE:-mock}
       KIJANI_BASE_URL: ${KIJANI_BASE_URL:-}
       KIJANI_API_KEY: ${KIJANI_API_KEY:-}
       PORT: "8080"
+    expose:
+      - "8080"
     volumes:
       - uploads:/app/uploads
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "${PORT:-8080}:80"
     restart: unless-stopped
 
 volumes:
