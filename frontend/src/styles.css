@@ -1,1 +1,3 @@
-:root{font-family:system-ui,sans-serif;color:#17324d;background:#f4f8f6}body{margin:0}main{max-width:900px;margin:auto;padding:2rem}nav{display:flex;gap:1rem;align-items:center;padding:1rem 2rem;background:#0d5c63;color:white}nav strong{margin-right:auto}button,input{font:inherit;padding:.6rem;border-radius:6px;border:1px solid #ccd}button{cursor:pointer}.primary{background:#0d5c63;color:#fff}.panel{max-width:480px}.panel form{display:grid;gap:.8rem}article{background:white;margin:1rem 0;padding:1rem;border-radius:8px;box-shadow:0 1px 4px #0001}.link{border:0;background:none;color:#075c9c;padding:0}.error{color:#b00020}
+@import "./styles/tokens.css";
+@import "./styles/base.css";
+@import "./styles/components.css";
