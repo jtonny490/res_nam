@@ -8,6 +8,7 @@ import (
 )
 
 type fakeReports struct {
+	report    *models.Report
 	created   *models.Report
 	comment   *models.Comment
 	commentAt time.Time
@@ -19,12 +20,22 @@ type fakeReports struct {
 func (f *fakeReports) List(string, string, int, int) ([]models.Report, int64, error) {
 	return nil, 0, nil
 }
-func (f *fakeReports) Get(uint) (*models.Report, error) { return &models.Report{}, nil }
-func (f *fakeReports) Create(x *models.Report) error    { f.created = x; return nil }
+func (f *fakeReports) Get(id uint) (*models.Report, error) {
+	if f.report != nil {
+		return f.report, nil
+	}
+	return &models.Report{ID: id}, nil
+}
+func (f *fakeReports) Create(x *models.Report) error { f.created = x; return nil }
+func (f *fakeReports) Update(x *models.Report) error { f.created = x; return nil }
+func (f *fakeReports) Delete(uint) error             { f.deleted = true; return nil }
 func (f *fakeReports) AddComment(x *models.Comment, at time.Time) error {
 	f.comment = x
 	f.commentAt = at
 	return nil
+}
+func (f *fakeReports) ListComments(uint) ([]models.Comment, error) {
+	return nil, nil
 }
 func (f *fakeReports) FindLike(uint, uint) (*models.Like, error) {
 	if f.like != nil {
@@ -35,6 +46,7 @@ func (f *fakeReports) FindLike(uint, uint) (*models.Like, error) {
 func (f *fakeReports) CreateLike(x *models.Like) error                  { f.like = x; return nil }
 func (f *fakeReports) DeleteLike(x *models.Like) error                  { f.deleted = true; return nil }
 func (f *fakeReports) UpdateStatus(_ uint, s string, _ time.Time) error { f.status = s; return nil }
+func (f *fakeReports) Pins() ([]models.ReportPin, error)                { return nil, nil }
 func TestReportServiceCreateValidatesAndSetsDefaults(t *testing.T) {
 	f := &fakeReports{}
 	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -50,16 +62,41 @@ func TestReportServiceRejectsOutOfBounds(t *testing.T) {
 		t.Fatal("expected coverage error")
 	}
 }
-func TestReportServiceLikeToggles(t *testing.T) {
+func TestReportServiceRejectsUnknownCategory(t *testing.T) {
+	_, e := (ReportService{Reports: &fakeReports{}}).Create(1, CreateReportInput{Title: "x", Category: "noise", Severity: 2, Latitude: -1, Longitude: 34})
+	if e == nil {
+		t.Fatal("expected category error")
+	}
+}
+func TestReportServiceLikeIsIdempotentAndUnlikeRemoves(t *testing.T) {
 	f := &fakeReports{}
 	s := ReportService{Reports: f}
-	liked, e := s.ToggleLike(2, 3)
-	if e != nil || !liked {
+	if e := s.Like(2, 3); e != nil || f.like == nil {
 		t.Fatal("expected like")
 	}
-	liked, e = s.ToggleLike(2, 3)
-	if e != nil || liked || !f.deleted {
+	if e := s.Like(2, 3); e != nil {
+		t.Fatal("expected idempotent like")
+	}
+	if e := s.Unlike(2, 3); e != nil || !f.deleted {
 		t.Fatal("expected unlike")
+	}
+}
+func TestReportServiceUpdateRequiresOwnership(t *testing.T) {
+	f := &fakeReports{report: &models.Report{ID: 5, UserID: 2, Latitude: -1, Longitude: 34}}
+	s := ReportService{Reports: f}
+	title := "updated"
+	if _, e := s.Update(5, 2, "public", UpdateReportInput{Title: &title}); e != nil {
+		t.Fatalf("owner should update: %v", e)
+	}
+	if _, e := s.Update(5, 99, "public", UpdateReportInput{Title: &title}); !errors.Is(e, ErrForbidden) {
+		t.Fatalf("non-owner = %v, want forbidden", e)
+	}
+}
+func TestReportServiceDeleteAllowsAdmin(t *testing.T) {
+	f := &fakeReports{report: &models.Report{ID: 5, UserID: 2}}
+	s := ReportService{Reports: f}
+	if e := s.Delete(5, 99, "admin"); e != nil {
+		t.Fatalf("admin should delete: %v", e)
 	}
 }
 

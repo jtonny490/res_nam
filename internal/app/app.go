@@ -8,8 +8,8 @@ import (
 	"log"
 	"os"
 	"res_nam/internal/config"
+	"res_nam/internal/database"
 	"res_nam/internal/handlers"
-	"res_nam/internal/models"
 	"res_nam/internal/repositories"
 	"res_nam/internal/router"
 	"res_nam/internal/services"
@@ -30,7 +30,7 @@ func New(c config.Config) (*gorm.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err = db.AutoMigrate(&models.User{}, &models.Report{}, &models.Comment{}, &models.Like{}, &models.AuthorityRequest{}); err != nil {
+	if err = database.Run(db, c.MigrationsDir); err != nil {
 		return nil, err
 	}
 	return db, nil

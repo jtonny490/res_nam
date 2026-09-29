@@ -1,0 +1,10 @@
+# Build artifacts
+frontend/dist/
+bin/
+
+# Local environment
+.env
+
+# Runtime uploads (keep the directory via .gitkeep)
+uploads/*
+!uploads/.gitkeep
