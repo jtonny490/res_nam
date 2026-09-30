@@ -5,6 +5,7 @@ const backend = process.env.BACKEND_URL || 'http://localhost:8080'
 
 export default defineConfig({
   plugins: [react()],
+  base: './',
   server: {
     proxy: {
       '/api': backend,
