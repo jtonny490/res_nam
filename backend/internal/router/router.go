@@ -1,6 +1,9 @@
 package router
 
 import (
+	"net/http"
+	"strings"
+
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"res_nam/internal/config"
@@ -14,8 +17,14 @@ func New(c config.Config, db *gorm.DB, auth handlers.AuthHandler) *gin.Engine {
 	r := gin.Default()
 	r.Use(middleware.CORS(c.CORSOrigin))
 	r.Static("/uploads", "uploads")
-	r.Static("/static", "static")
+	r.Static("/assets", "static/assets")
+	r.StaticFile("/favicon.ico", "static/favicon.ico")
 	r.NoRoute(func(ctx *gin.Context) {
+		path := ctx.Request.URL.Path
+		if strings.HasPrefix(path, "/assets/") {
+			ctx.Status(http.StatusNotFound)
+			return
+		}
 		ctx.File("static/index.html")
 	})
 	r.GET("/health", func(x *gin.Context) { x.JSON(200, gin.H{"status": "ok"}) })
